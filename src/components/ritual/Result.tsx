@@ -1,257 +1,211 @@
 "use client";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { ScpResult } from "../ritual/ScpResult";
-import { calculateElements, Elements } from "@/lib/elementLogic";
-import { UserData } from "@/types/ritualTypes";
-import { MOODS } from "@/data/moodConfig";
-import { SCENTS } from "@/data/scentConfig";
-import { BODY_SENSATIONS } from "@/data/bodySensationConfig";
-import { TASTES } from "@/data/tasteConfig";
-import { ENVIRONMENTS } from "@/data/envConfig";
-import { DreamyText } from "../../components/ui/DreamyText";
-
-
-interface AiSuggestions {
-  energyFormula: string;
-  microRitual: string;
-  sensoryTea: string;
-}
 
 interface ResultProps {
-  userData: UserData;
+  userData: any; // 暫時 any，之後換回 UserData
   onReset: () => void;
   isScpMode: boolean;
 }
 
-export const RESULT = ({ userData, onReset, isScpMode }: ResultProps) => {
-  const [suggestions, setSuggestions] = useState<AiSuggestions | null>(null);
-  const [elements, setElements] = useState<Elements | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+// 假資料（超夢幻版）
+const mockUserData = {
+  name: "Lily",
+  timestamp: "2026/03/09 深夜 23:47",
+  weather: "霧雨交織的量子薄霧",
+  location: { address: "板橋 × 邊界維度交界處" },
+  mood: "漂浮於粉紫色的倦怠與期待之間",
+  scent: "潮濕的舊書頁與遠方焚香的餘韻",
+  bodyFeel: "皮膚像被月光輕輕撫過，微微發燙",
+  taste: "舌尖殘留的藍莓薄荷與未說出口的秘密",
+  environments: ["碎浪灘", "極光湖", "發光樹"],
+};
+
+const mockElements = {
+  wood: 4,
+  fire: -1,
+  earth: 2,
+  metal: 3,
+  water: 5,
+};
+
+const mockSuggestions = {
+  energyFormula:
+    "今夜的你被水元素深深擁抱，建議在窗邊點一盞藍色小燈，讓霧雨的頻率與室內光暈共振。香氛配方：乳香 + 海洋鹽 + 一絲雪松，讓呼吸成為穿越維度的通道。",
+  microRitual:
+    "子夜時分，赤腳踩在地板上，閉眼想像腳底生出銀色根莖，往下扎進地球的核心，往上延伸到今晚最亮的那顆星。持續 3 分 33 秒，然後輕聲對自己說：『我允許自己漂浮。』",
+  sensoryTea:
+    "今晚最適合的是一杯冰鎮薰衣草藍莓茶，杯緣沾一點海鹽，喝的時候想像每一口都在沖刷掉白天殘留的灰塵，讓舌尖重新學會發光。",
+};
+
+export const RESULT = ({ userData = mockUserData, onReset, isScpMode }: ResultProps) => {
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    const elementsCalc = calculateElements(userData);
-    setElements(elementsCalc);
-
-    if (isScpMode) {
-      setLoading(false);
-      return;
-    }
-
-    const generateSuggestions = async () => {
-      try {
-        const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-        const elementSummary = `五行總分: 木${elementsCalc.wood}, 火${elementsCalc.fire}, 土${elementsCalc.earth}, 金${elementsCalc.metal}, 水${elementsCalc.water}`;
-
-        const prompt = `
-          基於使用者資料和五行，生成療癒感官微指引。輸出 JSON: {"energyFormula": "生活風格建議 (1-2句, 如熱開冷氣; 香味配方如雪松+玫瑰)", "microRitual": "每日任務 (1-2句, 如帶雨傘/紫色物/注意紅綠燈)", "sensoryTea": "下午茶飲料建議 (1句, 如適合的茶/飲料)" }。
-          資料：姓名 ${userData.name} | 心情 ${userData.mood} | 氣味 ${userData.scent} | 身體 ${userData.bodyFeel} | 環境 ${userData.environments.join(', ')} | 味覺 ${userData.taste} | 天氣 ${userData.weather} | ${elementSummary}。
-          風格：夢幻、溫柔指引，聚焦今天微行動。融入五行 (e.g., 火高建議涼爽; 水高加水元素)。
-        `;
-
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const jsonStr = response.text().replace(/```json\n?|\n?```/g, '');
-        const parsed = JSON.parse(jsonStr) as AiSuggestions;
-
-        setSuggestions(parsed);
-      } catch (err) {
-        console.error("AI 生成失敗:", err);
-        setError("頻率中斷... 使用預設。");
-        setSuggestions({
-          energyFormula: `在 ${userData.weather} 中，讓 ${userData.mood} 平衡。試試 ${userData.scent} + 玫瑰配方；如果熱，開冷氣流動能量。`,
-          microRitual: `今天帶把傘（雨天備用），注意紅綠燈；幸運物：紫色小物增強木元素。`,
-          sensoryTea: `適合 ${userData.taste} 風味的涼茶，平衡火元素。`
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    generateSuggestions();
-  }, [userData, isScpMode]);
+    // 模擬載入完成，讓動畫更有儀式感
+    const timer = setTimeout(() => setLoaded(true), 800);
+    return () => clearTimeout(timer);
+  }, []);
 
   if (isScpMode) {
-    return <ScpResult />;
+    return (
+      <div className="text-red-500 text-2xl text-center p-10">
+        [SCP 模式已啟動] 請勿關閉終端...
+      </div>
+    );
   }
 
-  const locationStr = userData.location?.address || "未知維度";
-
-  const getLabel = (options: any[], id: string) => {
-    return options.find(opt => opt.id === id)?.label || id;
-  };
-
-  const moodLabel = getLabel(MOODS, userData.mood);
-  const scentLabel = getLabel(SCENTS, userData.scent);
-  const bodyFeelLabel = getLabel(BODY_SENSATIONS, userData.bodyFeel);
-  const tasteLabel = getLabel(TASTES, userData.taste);
-  const envLabels = userData.environments.map(id => getLabel(ENVIRONMENTS, id)).join(" • ");
-
-  // 新增：五行平衡提示 helper
-  const getElementBalanceTip = (elements: Elements) => {
-    const maxElem = Object.entries(elements).reduce((max, [key, val]) => val > max[1] ? [key, val] : max, ['', -Infinity])[0];
-    switch (maxElem) {
-      case 'wood': return '木元素活躍，多接觸綠色植物，讓成長流暢。';
-      case 'fire': return '火元素旺盛，試著涼爽環境，平衡熱情。';
-      case 'earth': return '土元素穩定，接地冥想，鞏固內在。';
-      case 'metal': return '金元素堅韌，深呼吸金屬般的清晰。';
-      case 'water': return '水元素流動，喝水或近水邊，釋放情緒。';
-      default: return '元素平衡，維持當下頻率。';
-    }
-  };
+  const getLabel = (id: string) => id; // 假資料直接用敘述性文字
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="z-20 w-full max-w-4xl mt-20 px-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="relative z-20 w-full max-w-5xl mx-auto px-4 py-16 min-h-screen flex flex-col items-center"
     >
-      <DreamyText text={'儀式完成'}/>
-      
-      {/* Dashboard Grid - 加到 6 個卡片，lg:grid-cols-3 變兩行三列 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {/* 卡片 1: 維度座標 */}
-        <motion.div
-          initial={{ y: 10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          whileHover={{ scale: 1.02 }}
-          className="p-6 bg-gradient-to-br from-blue-900/50 to-purple-900/50 backdrop-blur-xl border border-white/10 rounded-3xl text-center shadow-[0_8px_32px_rgba(0,0,0,0.2)]"
-        >
-          <div className="text-xs text-white/50 uppercase tracking-widest mb-2">維度座標 🌌</div>
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <span className="text-2xl">🕒</span>
-            <p className="text-xl font-light text-cyan-200">{userData.timestamp}</p>
-          </div>
-          <div className="flex items-center justify-center gap-2">
-            
-            <span className="text-sm text-white/70">{userData.weather} @ {locationStr}</span>
-          </div>
-        </motion.div>
-
-        {/* 卡片 2: 能量基底 */}
-        <motion.div
-          initial={{ y: 10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          whileHover={{ scale: 1.02 }}
-          className="p-6 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.2)]"
-        >
-          <div className="text-xs text-white/50 uppercase tracking-widest mb-2">能量基底 ⚡</div>
-          <p className="text-lg leading-relaxed font-light text-white/90">
-            {userData.name}，校準完成。<br />
-            心境：{moodLabel} <br />
-            氣息：{scentLabel} <br />
-            感受：{bodyFeelLabel} <br />
-            味覺：{tasteLabel}
-          </p>
-          {userData.environments.length > 0 && (
-            <div className="mt-2 text-sm text-pink-300">
-              環境：{envLabels}
-            </div>
-          )}
-        </motion.div>
-
-        {/* 卡片 3: 能量空間配方 */}
-        <motion.div
-          initial={{ y: 10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          whileHover={{ scale: 1.02 }}
-          className="p-6 bg-gradient-to-br from-cyan-500/10 to-pink-500/10 backdrop-blur-xl border border-white/10 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.2)]"
-        >
-          <div className="text-xs text-white/50 uppercase tracking-widest mb-2">能量空間配方 🌿</div>
-          <AnimatePresence>
-            {loading ? (
-              <motion.p className="text-sm text-white/70 animate-pulse">對齊中...</motion.p>
-            ) : (
-              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-sm leading-relaxed text-white/90">
-                {suggestions?.energyFormula || "平衡你的能量..."}
-              </motion.p>
-            )}
-          </AnimatePresence>
-        </motion.div>
-
-        {/* 卡片 4: 微儀式神諭 */}
-        <motion.div
-          initial={{ y: 10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          whileHover={{ scale: 1.02 }}
-          className="p-6 bg-gradient-to-br from-pink-500/10 to-cyan-500/10 backdrop-blur-xl border border-white/10 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.2)]"
-        >
-          <div className="text-xs text-white/50 uppercase tracking-widest mb-2">微儀式神諭 🕯️</div>
-          <AnimatePresence>
-            {loading ? (
-              <motion.p className="text-sm text-white/70 animate-pulse">指引生成中...</motion.p>
-            ) : (
-              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-sm leading-relaxed text-white/90">
-                {suggestions?.microRitual || "今天的儀式感行動..."}
-              </motion.p>
-            )}
-          </AnimatePresence>
-        </motion.div>
-
-        {/* 卡片 5: 感官下午茶建議 */}
-        <motion.div
-          initial={{ y: 10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          whileHover={{ scale: 1.02 }}
-          className="p-6 bg-gradient-to-br from-cyan-500/10 to-pink-500/10 backdrop-blur-xl border border-white/10 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.2)]"
-        >
-          <div className="text-xs text-white/50 uppercase tracking-widest mb-2">神秘好味下午茶 ☕</div>
-          <AnimatePresence>
-            {loading ? (
-              <motion.p className="text-sm text-white/70 animate-pulse">配方調製中...</motion.p>
-            ) : (
-              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-sm leading-relaxed text-white/90">
-                {suggestions?.sensoryTea || "適合你的飲品..."}
-              </motion.p>
-            )}
-          </AnimatePresence>
-        </motion.div>
-
-        {/* 新卡片 6: 五行能量圖 */}
-        <motion.div
-          initial={{ y: 10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          whileHover={{ scale: 1.02 }}
-          className="p-6 bg-gradient-to-br from-green-500/10 to-blue-500/10 backdrop-blur-xl border border-white/10 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.2)]"
-        >
-          <div className="text-xs text-white/50 uppercase tracking-widest mb-2">五行能量圖 🔮</div>
-          {elements ? (
-            <div className="text-sm leading-relaxed text-white/90">
-              <div className="flex flex-wrap gap-2 mb-2">
-                <span className="text-green-300">木{elements.wood}</span>
-                <span className="text-red-300">火{elements.fire}</span>
-                <span className="text-yellow-300">土{elements.earth}</span>
-                <span className="text-gray-300">金{elements.metal}</span>
-                <span className="text-blue-300">水{elements.water}</span>
-              </div>
-              <p>{getElementBalanceTip(elements)}</p>
-            </div>
-          ) : (
-            <p className="text-sm text-white/70 animate-pulse">能量計算中...</p>
-          )}
-        </motion.div>
+      {/* 背景光暈 */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-br from-cyan-500/10 to-purple-600/10 rounded-full blur-3xl animate-pulse-slow" />
+        <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-gradient-to-tl from-pink-500/10 to-blue-600/10 rounded-full blur-3xl animate-pulse-slow delay-1000" />
       </div>
 
-      {error && <p className="text-center text-yellow-300 text-sm mb-4">{error}</p>}
+      <motion.h2
+        initial={{ y: -40, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 1.2, ease: "easeOut" }}
+        className="text-5xl md:text-6xl font-light tracking-[0.6em] mb-16 text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-purple-300 to-pink-300 text-center"
+        style={{ textShadow: "0 0 40px rgba(168,85,247,0.4)" }}
+      >
+        儀式已完成
+          <p className="text-white/20 text-[10px] tracking-widest max-w-xs mx-auto leading-loose">
+            此為《每日使用說明書》的預定完成的預想結果頁面， <br/>
+            注意！此頁面尚未完成，顯示結果與您選擇的不同為正常現象。
+          </p>
+      </motion.h2>
+    
+
+      <motion.div
+        initial={{ opacity: 0, scale: 0.92 }}
+        animate={{ opacity: loaded ? 1 : 0, scale: loaded ? 1 : 0.92 }}
+        transition={{ duration: 1.4, delay: 0.3 }}
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full relative"
+      >
+        {/* 卡片 1 - 維度座標 */}
+        <GlassCard title="維度座標" icon="🌌" delay={0.1}>
+          <div className="text-3xl font-light text-cyan-200 mb-2">{userData.timestamp}</div>
+          <div className="text-lg opacity-90 leading-relaxed">
+            {userData.weather}
+            <br />
+            <span className="text-sm opacity-70">@{userData.location.address}</span>
+          </div>
+        </GlassCard>
+
+        {/* 卡片 2 - 能量基底 */}
+        <GlassCard title="能量基底" icon="⚡" delay={0.2}>
+          <p className="text-xl leading-relaxed">
+            {userData.name}，<br />
+            你已被輕輕校準至今夜的頻率。
+          </p>
+          <div className="mt-4 space-y-1 text-sm opacity-90">
+            <div>心境：{userData.mood}</div>
+            <div>氣息：{userData.scent}</div>
+            <div>體感：{userData.bodyFeel}</div>
+            <div>餘味：{userData.taste}</div>
+            <div className="mt-3 text-pink-300">
+              環境共振：{userData.environments.join}
+            </div>
+          </div>
+        </GlassCard>
+
+        {/* 卡片 3 - 能量空間配方 */}
+        <GlassCard title="能量空間配方" icon="🌿" delay={0.3}>
+          <p className="text-base leading-relaxed opacity-90">
+            {mockSuggestions.energyFormula}
+          </p>
+        </GlassCard>
+
+        {/* 卡片 4 - 微儀式神諭 */}
+        <GlassCard title="微儀式神諭" icon="🕯️" delay={0.4}>
+          <p className="text-base leading-relaxed opacity-90">
+            {mockSuggestions.microRitual}
+          </p>
+        </GlassCard>
+
+        {/* 卡片 5 - 感官下午茶 */}
+        <GlassCard title="感官下午茶" icon="☕" delay={0.5}>
+          <p className="text-base leading-relaxed opacity-90">
+            {mockSuggestions.sensoryTea}
+          </p>
+        </GlassCard>
+
+        {/* 卡片 6 - 五行能量圖 */}
+        <GlassCard title="五行能量圖" icon="🔮" delay={0.6}>
+          <div className="flex flex-wrap gap-3 text-sm mb-3">
+            <span className="px-3 py-1 bg-green-900/30 rounded-full">木 +{mockElements.wood}</span>
+            <span className="px-3 py-1 bg-red-900/30 rounded-full">火 {mockElements.fire}</span>
+            <span className="px-3 py-1 bg-yellow-900/30 rounded-full">土 +{mockElements.earth}</span>
+            <span className="px-3 py-1 bg-gray-900/30 rounded-full">金 +{mockElements.metal}</span>
+            <span className="px-3 py-1 bg-blue-900/30 rounded-full">水 +{mockElements.water}</span>
+          </div>
+          <p className="text-sm opacity-90 leading-relaxed">
+            水元素今夜主導，建議讓情緒像湖水一樣緩緩流動，不要強行阻擋。
+          </p>
+        </GlassCard>
+      </motion.div>
 
       <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+        whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(168,85,247,0.5)" }}
+        whileTap={{ scale: 0.98 }}
         onClick={onReset}
-        className="mx-auto block text-white/70 hover:text-white transition-colors tracking-[0.2em] text-sm border border-white/20 px-8 py-3 rounded-full backdrop-blur-sm"
+        className="mt-16 px-12 py-5 bg-gradient-to-r from-purple-600/30 to-pink-600/30 backdrop-blur-xl border border-purple-400/40 rounded-full text-lg tracking-[0.4em] text-purple-200 hover:text-white transition-all shadow-[0_0_30px_rgba(168,85,247,0.3)]"
       >
         重新對齊頻率
       </motion.button>
     </motion.div>
   );
 };
+
+// 共用玻璃態卡片元件
+function GlassCard({
+  title,
+  icon,
+  children,
+  delay = 0,
+}: {
+  title: string;
+  icon: string;
+  children: React.ReactNode;
+  delay?: number;
+}) {
+  return (
+    <motion.div
+      initial={{ y: 30, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.9, delay, ease: "easeOut" }}
+      whileHover={{ y: -8, transition: { duration: 0.4 } }}
+      className="relative p-8 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden group shadow-[0_8px_32px_rgba(0,0,0,0.25)]"
+    >
+      {/* 懸浮光暈 */}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity duration-700 bg-gradient-to-br from-cyan-500/10 via-purple-500/10 to-pink-500/10 pointer-events-none" />
+
+      <div className="relative z-10">
+        <div className="flex items-center gap-3 mb-5">
+          <span className="text-2xl">{icon}</span>
+          <h3 className="text-lg font-light tracking-widest text-white/80 uppercase">{title}</h3>
+        </div>
+        {children}
+      </div>
+    </motion.div>
+  );
+}
+
+// 額外動畫 keyframes（可加到 globals.css 或 tailwind）
+/*
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.15); }
+}
+.animate-pulse-slow {
+  animation: pulse-slow 12s infinite ease-in-out;
+}
+*/
